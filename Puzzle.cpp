@@ -14,12 +14,26 @@
 
 #include <future>
 
+/*----------------------------------------------------------------------------
+	%%Function: DieProc
+	%%Qualified: DieProc
+	%%Contact: rlittle
+	
+	die with a message (catastrophic failure)
+----------------------------------------------------------------------------*/
 void DieProc(const char *sz, const char *szFile, int nLine)
 {
 	fprintf(stderr, "Died!  %s (%s, %d)\n", sz, szFile, nLine);
 	exit(1);
 }
 
+/*----------------------------------------------------------------------------
+	%%Function: Recurse
+	%%Qualified: Recurse
+	%%Contact: rlittle
+	
+	this is the meat of the matter...
+----------------------------------------------------------------------------*/
 std::vector<Board *> *Recurse(Board *board, std::vector<std::string> vecWords)
 {
 	std::vector<Board *> *boards = NULL;
@@ -78,6 +92,13 @@ std::vector<Board *> *Recurse(Board *board, std::vector<std::string> vecWords)
 #include <fstream>
 #include <sstream>
 
+/*----------------------------------------------------------------------------
+	%%Function: trim
+	%%Qualified: trim
+	%%Contact: rlittle
+	
+	trim off the whitespace from the string
+----------------------------------------------------------------------------*/
 std::string trim(const std::string& str)
 {
 	size_t first = str.find_first_not_of(' ');
@@ -89,6 +110,13 @@ std::string trim(const std::string& str)
 	return str.substr(first, (last - first + 1));
 }
 
+/*----------------------------------------------------------------------------
+	%%Function: ReadInFile
+	%%Qualified: ReadInFile
+	%%Contact: rlittle
+	
+	read the input file
+----------------------------------------------------------------------------*/
 void ReadInFile(std::string strFilename, int &xMax, int &yMax, std::vector<std::string> &vecWords, std::vector<std::string> &vecIllegal)
 {
 	std::ifstream inFile;
@@ -128,6 +156,13 @@ void ReadInFile(std::string strFilename, int &xMax, int &yMax, std::vector<std::
 	inFile.close();
 }
 
+/*----------------------------------------------------------------------------
+	%%Function: SwapBoardItems
+	%%Qualified: SwapBoardItems
+	%%Contact: rlittle
+	
+	swap the two board items
+----------------------------------------------------------------------------*/
 void SwapBoardItems(std::vector<Board *> *boards, int i1, int i2)
 {
 	Board *t = boards->at(i2);
@@ -135,6 +170,14 @@ void SwapBoardItems(std::vector<Board *> *boards, int i1, int i2)
 	boards->at(i1) = t;
 }
 
+/*----------------------------------------------------------------------------
+	%%Function: PruneIllegalBoardsByIndex
+	%%Qualified: PruneIllegalBoardsByIndex
+	%%Contact: rlittle
+	
+	prune all the illegal boards from the list of boards. operates on
+	boards by side affect
+----------------------------------------------------------------------------*/
 void PruneIllegalBoardsByIndex(std::vector<Board *> *boards, const std::vector<std::string> &vecIllegal)
 {
 	int i = 0;
@@ -161,6 +204,15 @@ void PruneIllegalBoardsByIndex(std::vector<Board *> *boards, const std::vector<s
 }
 
 
+/*----------------------------------------------------------------------------
+	%%Function: PermuteWhitespace
+	%%Qualified: PermuteWhitespace
+	%%Contact: rlittle
+	
+	permute all the whitespace (actually, ".") into all the possible
+	characters. the board's permute method will take carre of pruning 
+	illegal boards
+----------------------------------------------------------------------------*/
 std::vector<Board *> *PermuteWhitespace(std::vector<Board *> *boards, const std::vector<std::string> &vecIllegal)
 {
 	// for every period, fill it in with the 26 possible characters
@@ -201,15 +253,29 @@ void TestCore()
 	TestPruneBoard(7, 5, std::vector<std::string>({ "tengamravocadoolaffubsoahcuitradecn", "tradecnchaosuiolaffubavocadotengamr", "tradecnsoahcuiolaffubavocadomagnetr", "tradecnsoahcuiolaffubavocadomagnetr", "tradecnsoahcuiolaffubavocadotengamr" }), std::vector<std::string>({ "ace", "coat" }), 2, "4 boards remove two in middle");
 }
 
-bool compareBoards(const Board *left, const Board *right)
+/*----------------------------------------------------------------------------
+	%%Function: isBoardLessThan
+	%%Qualified: isBoardLessThan
+	%%Contact: rlittle
+	
+	compare two boards to see of left is less than right
+----------------------------------------------------------------------------*/
+bool isBoardLessThan(const Board *left, const Board *right)
 {
 	return *left < *right; 
 }
 
 #include <algorithm>
+/*----------------------------------------------------------------------------
+	%%Function: RemoveDuplicates
+	%%Qualified: RemoveDuplicates
+	%%Contact: rlittle
+	
+	remove duplicate boards (sort then remove)
+----------------------------------------------------------------------------*/
 void RemoveDuplicates(std::vector<Board *> *boards)
 {
-	std::sort(boards->begin(), boards->end(), compareBoards);
+	std::sort(boards->begin(), boards->end(), isBoardLessThan);
 
 	// now walk through and delete any dupes
 	int i = 0;
@@ -235,11 +301,23 @@ void RemoveDuplicates(std::vector<Board *> *boards)
 		boards->erase(boards->begin() + iMax, boards->end());
 }
 
-bool compareStringsByLength(const std::string left, const std::string right)
+/*----------------------------------------------------------------------------
+	%%Function: isStringShorterThan
+	%%Qualified: isStringShorterThan
+	%%Contact: rlittle
+	
+----------------------------------------------------------------------------*/
+bool isStringShorterThan(const std::string left, const std::string right)
 {
 	return left.length() < right.length();
 }
 
+/*----------------------------------------------------------------------------
+	%%Function: main
+	%%Qualified: main
+	%%Contact: rlittle
+	
+----------------------------------------------------------------------------*/
 int main(int argc, char * argv[])
 {
 	clock_t start = clock();
@@ -251,7 +329,7 @@ int main(int argc, char * argv[])
 	std::vector<std::string> vecIllegal;
 
 	ReadInFile(std::string(argv[1]), xMax, yMax, vecWords, vecIllegal);
-	std::sort(vecWords.begin(), vecWords.end(), compareStringsByLength);
+	std::sort(vecWords.begin(), vecWords.end(), isStringShorterThan);
 
 	// sort the words by length
 
