@@ -76,11 +76,15 @@ public:
 	bool FSchrodingersChar(const Position &pos) const;
 	bool HasWord(const std::string &word) const;
 	bool HasWords(const std::vector<std::string> &words) const;
+	void SetBoard(const char *rgch);
+	const char *RawBoard(void);
 
-	std::vector<Board> *PermuteWhitespace(const Position &pos, const std::vector<std::string> &vecIllegal);
+	std::vector<Board *> *PermuteWhitespace(const Position &pos, const std::vector<std::string> &vecIllegal);
 
 	void Print(void) const;
 
 };
 
-void AppendBoardsToBoards(std::vector<Board> *boards, const std::vector<Board> *boardsToAppend);
+void AppendBoardsToBoards(std::vector<Board *> *boards, const std::vector<Board *> *boardsToAppend);
+void FreeBoard(Board *pBoard);
+Board *NewBoard(Board *pBoard);

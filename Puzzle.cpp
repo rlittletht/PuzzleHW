@@ -18,12 +18,15 @@ void DieProc(const char *sz, const char *szFile, int nLine)
 	exit(1);
 }
 
-std::vector<Board> *Recurse(const Board &board, std::vector<std::string> vecWords)
+std::vector<Board *> *Recurse(Board *board, std::vector<std::string> vecWords)
 {
-	std::vector<Board> *boards = new std::vector<Board>();
+	std::vector<Board *> *boards = NULL;
 
 	if (vecWords.size() == 0)
 	{
+		if (boards == NULL)
+			boards = new std::vector<Board *>();
+
 		boards->push_back(board);
 		return boards;
 	}
@@ -42,19 +45,29 @@ std::vector<Board> *Recurse(const Board &board, std::vector<std::string> vecWord
 		// try every placement direction at this location
 		int dir = 0;
 
-		while (dir < (int) Next)
+		if (board->FMatchChar('.', pos) || board->FMatchChar(strWord[0], pos))
 		{
-			Board boardT = board;
-			if (boardT.FPlace(strWord, pos, (Direction)dir))
+			while (dir < (int) Next)
 			{
-				// we were able to place the word here.  try to build a board with this word
-				// in this location
-				std::vector<Board> *newBoards = Recurse(boardT, vecWords);
-				AppendBoardsToBoards(boards, newBoards);
+				Board *boardT = NewBoard(board);
+				if (boardT->FPlace(strWord, pos, (Direction) dir))
+				{
+					// we were able to place the word here.  try to build a board with this word
+					// in this location
+					std::vector<Board *> *newBoards = Recurse(boardT, vecWords);
+					if (boards == NULL)
+						boards = new std::vector<Board *>();
+					AppendBoardsToBoards(boards, newBoards);
+				}
+				else
+				{
+					FreeBoard(boardT);
+					boardT = NULL;
+				}
+				dir++;
 			}
-			dir++;
 		}
-	} while (board.FMovePosition(Next, pos, pos));
+	} while (board->FMovePosition(Next, pos, pos));
 
 	return boards;
 }
@@ -113,24 +126,26 @@ void ReadInFile(std::string strFilename, int &xMax, int &yMax, std::vector<std::
 	inFile.close();
 }
 
-void SwapBoardItems(std::vector<Board> *boards, int i1, int i2)
+void SwapBoardItems(std::vector<Board *> *boards, int i1, int i2)
 {
-	Board t = boards->at(i2);
+	Board *t = boards->at(i2);
 	boards->at(i2) = boards->at(i1);
 	boards->at(i1) = t;
 }
 
-void PruneIllegalBoardsByIndex(std::vector<Board> *boards, const std::vector<std::string> &vecIllegal)
+void PruneIllegalBoardsByIndex(std::vector<Board *> *boards, const std::vector<std::string> &vecIllegal)
 {
 	int i = 0;
 	int iMax = boards->size();
 
 	while (i < iMax)
 	{
-		if (boards->at(i).HasWords(vecIllegal))
+		if (boards->at(i)->HasWords(vecIllegal))
 		{
 			iMax--;
 			SwapBoardItems(boards, i, iMax);
+			FreeBoard(boards->at(iMax));
+			boards->at(iMax) = NULL;
 		}
 		else
 		{
@@ -144,16 +159,16 @@ void PruneIllegalBoardsByIndex(std::vector<Board> *boards, const std::vector<std
 }
 
 
-std::vector<Board> *PermuteWhitespace(std::vector<Board> *boards, const std::vector<std::string> &vecIllegal)
+std::vector<Board *> *PermuteWhitespace(std::vector<Board *> *boards, const std::vector<std::string> &vecIllegal)
 {
 	// for every period, fill it in with the 26 possible characters
-	std::vector<Board> *newBoards = new std::vector<Board>();
-	std::vector<Board>::iterator itBoard = boards->begin(); // start at the end so we can delete if we want to 
+	std::vector<Board *> *newBoards = new std::vector<Board *>();
+	std::vector<Board *>::iterator itBoard = boards->begin(); // start at the end so we can delete if we want to 
 
 	for(; itBoard != boards->end(); itBoard++)
 	{
 		Position pos = { 0,0 };
-		AppendBoardsToBoards(newBoards, (*itBoard).PermuteWhitespace(pos, vecIllegal));
+		AppendBoardsToBoards(newBoards, (*itBoard)->PermuteWhitespace(pos, vecIllegal));
 	}
 
 	return newBoards;
@@ -161,11 +176,11 @@ std::vector<Board> *PermuteWhitespace(std::vector<Board> *boards, const std::vec
 
 void TestPruneBoard(int xMax, int yMax, const std::vector<std::string> &vecBoardInit, const std::vector<std::string> &vecIllegal, int cExpected, const char *szTest)
 {
-	std::vector<Board> *boards = new std::vector<Board>();
+	std::vector<Board *> *boards = new std::vector<Board *>();
 
 	for (std::vector<std::string>::const_iterator it = vecBoardInit.begin(); it != vecBoardInit.end(); it++)
 	{
-		Board b(xMax, yMax, *it);
+		Board *b = new Board(xMax, yMax, *it);
 
 		boards->push_back(b);
 	}
@@ -184,13 +199,13 @@ void TestCore()
 	TestPruneBoard(7, 5, std::vector<std::string>({ "tengamravocadoolaffubsoahcuitradecn", "tradecnchaosuiolaffubavocadotengamr", "tradecnsoahcuiolaffubavocadomagnetr", "tradecnsoahcuiolaffubavocadomagnetr", "tradecnsoahcuiolaffubavocadotengamr" }), std::vector<std::string>({ "ace", "coat" }), 2, "4 boards remove two in middle");
 }
 
-bool compareBoards(const Board &left, const Board &right)
+bool compareBoards(const Board *left, const Board *right)
 {
-	return left < right; 
+	return *left < *right; 
 }
 
 #include <algorithm>
-void RemoveDuplicates(std::vector<Board> *boards)
+void RemoveDuplicates(std::vector<Board *> *boards)
 {
 	std::sort(boards->begin(), boards->end(), compareBoards);
 
@@ -200,10 +215,12 @@ void RemoveDuplicates(std::vector<Board> *boards)
 
 	while (i < iMax - 1)
 	{
-		if (boards->at(i) == boards->at(i + 1))
+		if (*(boards->at(i)) == *(boards->at(i + 1)))
 		{
 			iMax--;
 			SwapBoardItems(boards, i, iMax);
+			FreeBoard(boards->at(iMax));
+			boards->at(iMax) = NULL;
 		}
 		else
 		{
@@ -211,6 +228,7 @@ void RemoveDuplicates(std::vector<Board> *boards)
 		}
 	}
 
+	// we already freed the boards above, but we still have to remove their entries from the vector
 	if (iMax < (int)boards->size())
 		boards->erase(boards->begin() + iMax, boards->end());
 }
@@ -224,7 +242,7 @@ int main(int argc, char * argv[])
 {
 	clock_t start = clock();
 
-	RunTests();
+	// RunTests();
 
 	int xMax, yMax;
 	std::vector<std::string> vecWords;
@@ -235,24 +253,24 @@ int main(int argc, char * argv[])
 
 	// sort the words by length
 
-	Board board(xMax, yMax);
+	Board *pBoard = new Board(xMax, yMax);
 
-	std::vector<Board> *boards = Recurse(board, vecWords);
+	std::vector<Board *> *boards = Recurse(pBoard, vecWords);
 	PruneIllegalBoardsByIndex(boards, vecIllegal);
-	std::vector<Board> *fullBoards = PermuteWhitespace(boards, vecIllegal);
+	std::vector<Board *> *fullBoards = PermuteWhitespace(boards, vecIllegal);
 	delete boards;
 
 	PruneIllegalBoardsByIndex(fullBoards, vecIllegal);
 	RemoveDuplicates(fullBoards);
 
-	std::vector<Board>::iterator it = fullBoards->begin();
+	std::vector<Board *>::iterator it = fullBoards->begin();
 
 	printf("%d solution(s)\n", fullBoards->size());
 	for (; it != fullBoards->end(); it++)
 	{
 		printf("Board:\n");
 
-		(*it).Print();
+		(*it)->Print();
 	}
 
 	printf("elapsed: %f\n", (double) (clock() - start) / CLOCKS_PER_SEC);

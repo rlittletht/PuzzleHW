@@ -10,13 +10,14 @@
 	%%Qualified: AppendBoardsToBoards
 	%%Contact: rlittle
 	
+	transfers ownership of all the boards in boardsToAppend into boards
 ----------------------------------------------------------------------------*/
-void AppendBoardsToBoards(std::vector<Board> *boards, const std::vector<Board> *boardsToAppend)
+void AppendBoardsToBoards(std::vector<Board *> *boards, const std::vector<Board *> *boardsToAppend)
 {
-	if (boardsToAppend->size() > 0)
+	if (boardsToAppend != NULL && boardsToAppend->size() > 0)
 	{
 		// append the boards we just got back into the list we will return
-		std::vector<Board>::const_iterator it = boardsToAppend->begin();
+		std::vector<Board *>::const_iterator it = boardsToAppend->begin();
 
 		for (; it != boardsToAppend->end(); it++)
 		{
@@ -276,9 +277,9 @@ bool Board::FSchrodingersChar(const Position &pos) const
 	for every ., create a new board for every character permutation
 	from the given position, find the next '.' and permute/recurse
 ----------------------------------------------------------------------------*/
-std::vector<Board> *Board::PermuteWhitespace(const Position &pos, const std::vector<std::string> &vecIllegal)
+std::vector<Board *> *Board::PermuteWhitespace(const Position &pos, const std::vector<std::string> &vecIllegal)
 {
-	std::vector<Board> *boards = new std::vector<Board>();
+	std::vector<Board *> *boards = NULL; 
 	Position posCur = pos;
 
 	// find the next '.'
@@ -294,7 +295,8 @@ std::vector<Board> *Board::PermuteWhitespace(const Position &pos, const std::vec
 	// if we're out of legal positions, the board is done
 	if (!FLegalPosition(posCur))
 	{
-		boards->push_back(*this);
+		boards = new std::vector<Board *>();
+		boards->push_back(this);
 		return boards;
 	}
 
@@ -310,9 +312,20 @@ std::vector<Board> *Board::PermuteWhitespace(const Position &pos, const std::vec
 
 	for (unsigned int i = 0; i < strlen(rgchPossible); i++)
 	{
-		Board board = *this;	// copy this board and start placing chars
-		if (board.FPlaceChar(rgchPossible[i], posCur) && !board.HasWords(vecIllegal))
-			AppendBoardsToBoards(boards, board.PermuteWhitespace(posNext, vecIllegal));
+		Board *pBoardNew = NewBoard(this); // copy this board and start placing chars
+
+		if (pBoardNew->FPlaceChar(rgchPossible[i], posCur) && !pBoardNew->HasWords(vecIllegal))
+		{
+			if (boards == NULL)
+				boards = new std::vector<Board *>();
+
+			AppendBoardsToBoards(boards, pBoardNew->PermuteWhitespace(posNext, vecIllegal));
+		}
+		else
+		{
+			FreeBoard(pBoardNew);
+			pBoardNew = NULL;
+		}
 	}
 
 	return boards;
@@ -478,3 +491,44 @@ Board::~Board()
 	m_rgchBoard = NULL;
 }
 
+/*----------------------------------------------------------------------------
+	%%Function: SetBoard
+	%%Qualified: Board::SetBoard
+	%%Contact: rlittle
+	
+----------------------------------------------------------------------------*/
+void Board::SetBoard(const char *rgchBoard)
+{
+	memcpy(m_rgchBoard, rgchBoard, m_xMax * m_yMax);
+
+}
+
+const char *Board::RawBoard(void)
+{
+	return m_rgchBoard;
+}
+
+std::vector<Board *> boardsPool;
+
+void FreeBoard(Board *pBoard)
+{
+	boardsPool.push_back(pBoard);
+}
+
+Board *NewBoard(Board *pBoardSource)
+{
+	Board *pBoard;
+
+	if (boardsPool.size() > 0)
+	{
+		pBoard = boardsPool.back();
+		boardsPool.pop_back();
+		pBoard->SetBoard(pBoardSource->RawBoard());
+		return pBoard;
+	}
+	else
+	{
+		pBoard = new Board(*pBoardSource);
+		return pBoard;
+	}
+}
