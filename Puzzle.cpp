@@ -72,7 +72,7 @@ std::vector<Board *> *Recurse(Board *board, std::vector<std::string> vecWords, i
 				{
 					// we were able to place the word here.  try to build a board with this word
 					// in this location
-					if (cLevels >= 0)
+					if (cLevels >= 2)
 					{
 						std::vector<Board *> *newBoards = Recurse(boardT, vecWords);
 
