@@ -12,6 +12,8 @@
 
 #include <time.h>
 
+#include <future>
+
 void DieProc(const char *sz, const char *szFile, int nLine)
 {
 	fprintf(stderr, "Died!  %s (%s, %d)\n", sz, szFile, nLine);
