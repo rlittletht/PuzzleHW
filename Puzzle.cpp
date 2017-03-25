@@ -34,7 +34,7 @@ void DieProc(const char *sz, const char *szFile, int nLine)
 	
 	this is the meat of the matter...
 ----------------------------------------------------------------------------*/
-std::vector<Board *> *Recurse(Board *board, std::vector<std::string> vecWords)
+std::vector<Board *> *Recurse(Board *board, std::vector<std::string> vecWords, int cLevels = 0)
 {
 	std::vector<Board *> *boards = NULL;
 
@@ -56,6 +56,8 @@ std::vector<Board *> *Recurse(Board *board, std::vector<std::string> vecWords)
 	vecWords.pop_back();
 	Position pos = { 0, 0 };
 
+	std::vector<std::future<std::vector<Board *> *>> results;
+
 	do
 	{
 		// try every placement direction at this location
@@ -70,10 +72,20 @@ std::vector<Board *> *Recurse(Board *board, std::vector<std::string> vecWords)
 				{
 					// we were able to place the word here.  try to build a board with this word
 					// in this location
-					std::vector<Board *> *newBoards = Recurse(boardT, vecWords);
-					if (boards == NULL)
-						boards = new std::vector<Board *>();
-					AppendBoardsToBoards(boards, newBoards);
+					if (cLevels >= 0)
+					{
+						std::vector<Board *> *newBoards = Recurse(boardT, vecWords);
+
+						if (boards == NULL)
+
+							boards = new std::vector<Board *>();
+
+						AppendBoardsToBoards(boards, newBoards);
+					}
+					else
+					{
+						results.push_back(std::async(std::launch::async, Recurse, boardT, vecWords, ++cLevels));
+					}
 				}
 				else
 				{
@@ -84,6 +96,19 @@ std::vector<Board *> *Recurse(Board *board, std::vector<std::string> vecWords)
 			}
 		}
 	} while (board->FMovePosition(Next, pos, pos));
+
+	// now take all the async results and merge them into our boards before returning
+	for (std::vector<std::future<std::vector<Board *> *>>::iterator it = results.begin(); it < results.end(); it++)
+	{
+		std::vector<Board *> *newBoards = (*it).get();
+		if (newBoards != NULL)
+		{
+			if (boards == NULL)
+				boards = new std::vector<Board *>();
+
+			AppendBoardsToBoards(boards, newBoards);
+		}
+	}
 
 	return boards;
 }
@@ -203,7 +228,7 @@ void PruneIllegalBoardsByIndex(std::vector<Board *> *boards, const std::vector<s
 	}
 }
 
-
+#include <functional>
 /*----------------------------------------------------------------------------
 	%%Function: PermuteWhitespace
 	%%Qualified: PermuteWhitespace
@@ -218,11 +243,24 @@ std::vector<Board *> *PermuteWhitespace(std::vector<Board *> *boards, const std:
 	// for every period, fill it in with the 26 possible characters
 	std::vector<Board *> *newBoards = new std::vector<Board *>();
 	std::vector<Board *>::iterator itBoard = boards->begin(); // start at the end so we can delete if we want to 
+	std::vector<std::future<std::vector<Board *> *>> results;
 
 	for(; itBoard != boards->end(); itBoard++)
 	{
 		Position pos = { 0,0 };
-		AppendBoardsToBoards(newBoards, (*itBoard)->PermuteWhitespace(pos, vecIllegal));
+		
+//		results.push_back(std::async<(std::launch::async, [itBoard, pos, vecIllegal]
+		//{
+//			return (*itBoard)->PermuteWhitespace(pos, vecIllegal);
+		//}));
+		auto f = std::bind(&Board::PermuteWhitespace, *itBoard, std::placeholders::_1, std::placeholders::_2);
+
+		results.push_back(std::async(std::launch::async, f, pos, vecIllegal));
+	}
+
+	for (std::vector<std::future<std::vector<Board *> *>>::iterator it = results.begin(); it < results.end(); it++)
+	{
+		AppendBoardsToBoards(newBoards, (*it).get());
 	}
 
 	return newBoards;
