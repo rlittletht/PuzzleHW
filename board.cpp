@@ -508,27 +508,37 @@ const char *Board::RawBoard(void)
 	return m_rgchBoard;
 }
 
+#define OBJECTPOOL	0
+
+#if OBJECTPOOL
 std::vector<Board *> boardsPool;
+#endif
 
 void FreeBoard(Board *pBoard)
 {
+#if OBJECTPOOL
 	boardsPool.push_back(pBoard);
+#else
+	delete(pBoard);
+#endif
 }
 
 Board *NewBoard(Board *pBoardSource)
 {
 	Board *pBoard;
 
+#if OBJECTPOOL
 	if (boardsPool.size() > 0)
 	{
 		pBoard = boardsPool.back();
 		boardsPool.pop_back();
 		pBoard->SetBoard(pBoardSource->RawBoard());
-		return pBoard;
 	}
 	else
+#else
 	{
 		pBoard = new Board(*pBoardSource);
-		return pBoard;
 	}
+#endif
+	return pBoard;
 }
