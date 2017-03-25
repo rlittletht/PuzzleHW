@@ -508,15 +508,28 @@ const char *Board::RawBoard(void)
 	return m_rgchBoard;
 }
 
-#define OBJECTPOOL	0
+#define OBJECTPOOL	1
 
 #if OBJECTPOOL
 std::vector<Board *> boardsPool;
+
+#if ASYNC
+#include <mutex>
+std::mutex mutexObjectPool;
+#endif // ASYNC
+
 #endif
+
+#include <inttypes.h>
+int64_t cBoardsAllocated = 0;
+int64_t cBoardsReused = 0;
 
 void FreeBoard(Board *pBoard)
 {
 #if OBJECTPOOL
+#if ASYNC
+	std::lock_guard<std::mutex> guard(mutexObjectPool);
+#endif
 	boardsPool.push_back(pBoard);
 #else
 	delete(pBoard);
@@ -525,6 +538,11 @@ void FreeBoard(Board *pBoard)
 
 Board *NewBoard(Board *pBoardSource)
 {
+#if OBJECTPOOL
+#if ASYNC
+	std::lock_guard<std::mutex> guard(mutexObjectPool);
+#endif
+#endif
 	Board *pBoard;
 
 #if OBJECTPOOL
@@ -533,12 +551,15 @@ Board *NewBoard(Board *pBoardSource)
 		pBoard = boardsPool.back();
 		boardsPool.pop_back();
 		pBoard->SetBoard(pBoardSource->RawBoard());
+		cBoardsReused++;
 	}
 	else
-#else
+#endif
 	{
 		pBoard = new Board(*pBoardSource);
+		cBoardsAllocated++;
+		if (cBoardsAllocated % 1000000 == 0)
+			fprintf(stderr, "Allocated %" PRId64 " boards, Reused %" PRId64 " boards, Pool= %d boards\n", cBoardsAllocated, cBoardsReused, boardsPool.size());
 	}
-#endif
 	return pBoard;
 }

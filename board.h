@@ -88,3 +88,6 @@ public:
 void AppendBoardsToBoards(std::vector<Board *> *boards, const std::vector<Board *> *boardsToAppend);
 void FreeBoard(Board *pBoard);
 Board *NewBoard(Board *pBoard);
+
+#define OBJECTPOOL 1
+#define ASYNC 1

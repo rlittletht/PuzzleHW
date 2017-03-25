@@ -1,12 +1,42 @@
-7 5
-+ avocado
-+ magnet
-+ cedar
-+ robin
-+ chaos
-+ buffalo
-+ trade
-+ lad
+5 4
 + fun
-- ace
-- coat
++ fad
++ gat
++ rut
+- gf
+- nd
+- rt 
+- gr
+- fr
+- aa
+- ar
+- ff
+- dd
+- gg
+- rr
+- tt
+- nn
+- l 
+- x
+- y
+- z
+- j
+- k
+- p
+- q
+- v
+- w
+- b
+- c
+- e
+- h
+- i
+- j
+- k
+- m
+- o
+- s
+
+
+
+

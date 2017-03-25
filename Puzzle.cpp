@@ -56,7 +56,9 @@ std::vector<Board *> *Recurse(Board *board, std::vector<std::string> vecWords, i
 	vecWords.pop_back();
 	Position pos = { 0, 0 };
 
+#if ASYNC
 	std::vector<std::future<std::vector<Board *> *>> results;
+#endif
 
 	do
 	{
@@ -72,7 +74,9 @@ std::vector<Board *> *Recurse(Board *board, std::vector<std::string> vecWords, i
 				{
 					// we were able to place the word here.  try to build a board with this word
 					// in this location
+#if ASYNC
 					if (cLevels >= 2)
+#endif
 					{
 						std::vector<Board *> *newBoards = Recurse(boardT, vecWords);
 
@@ -82,10 +86,12 @@ std::vector<Board *> *Recurse(Board *board, std::vector<std::string> vecWords, i
 
 						AppendBoardsToBoards(boards, newBoards);
 					}
+#if ASYNC
 					else
 					{
 						results.push_back(std::async(std::launch::async, Recurse, boardT, vecWords, ++cLevels));
 					}
+#endif ASYNC
 				}
 				else
 				{
@@ -97,6 +103,7 @@ std::vector<Board *> *Recurse(Board *board, std::vector<std::string> vecWords, i
 		}
 	} while (board->FMovePosition(Next, pos, pos));
 
+#if ASYNC
 	// now take all the async results and merge them into our boards before returning
 	for (std::vector<std::future<std::vector<Board *> *>>::iterator it = results.begin(); it < results.end(); it++)
 	{
@@ -109,6 +116,7 @@ std::vector<Board *> *Recurse(Board *board, std::vector<std::string> vecWords, i
 			AppendBoardsToBoards(boards, newBoards);
 		}
 	}
+#endif
 
 	return boards;
 }
@@ -243,25 +251,29 @@ std::vector<Board *> *PermuteWhitespace(std::vector<Board *> *boards, const std:
 	// for every period, fill it in with the 26 possible characters
 	std::vector<Board *> *newBoards = new std::vector<Board *>();
 	std::vector<Board *>::iterator itBoard = boards->begin(); // start at the end so we can delete if we want to 
+#if ASYNC
 	std::vector<std::future<std::vector<Board *> *>> results;
+#endif
 
 	for(; itBoard != boards->end(); itBoard++)
 	{
 		Position pos = { 0,0 };
-		
-//		results.push_back(std::async<(std::launch::async, [itBoard, pos, vecIllegal]
-		//{
-//			return (*itBoard)->PermuteWhitespace(pos, vecIllegal);
-		//}));
+#if ASYNC		
 		auto f = std::bind(&Board::PermuteWhitespace, *itBoard, std::placeholders::_1, std::placeholders::_2);
 
 		results.push_back(std::async(std::launch::async, f, pos, vecIllegal));
+#else
+		AppendBoardsToBoards(newBoards, (*itBoard)->PermuteWhitespace(pos, vecIllegal));
+#endif
+
 	}
 
+#if ASYNC
 	for (std::vector<std::future<std::vector<Board *> *>>::iterator it = results.begin(); it < results.end(); it++)
 	{
 		AppendBoardsToBoards(newBoards, (*it).get());
 	}
+#endif
 
 	return newBoards;
 }
@@ -374,7 +386,9 @@ int main(int argc, char * argv[])
 	Board *pBoard = new Board(xMax, yMax);
 
 	std::vector<Board *> *boards = Recurse(pBoard, vecWords);
+	fprintf(stderr, "%d boards after Recurse, before prune\n", boards->size());
 	PruneIllegalBoardsByIndex(boards, vecIllegal);
+	fprintf(stderr, "%d boards before PermuteWhitespace\n", boards->size());
 	std::vector<Board *> *fullBoards = PermuteWhitespace(boards, vecIllegal);
 	delete boards;
 
@@ -383,7 +397,7 @@ int main(int argc, char * argv[])
 
 	std::vector<Board *>::iterator it = fullBoards->begin();
 
-	printf("%d solution(s)\n", fullBoards->size());
+	fprintf(stderr, "%d solution(s)\n", fullBoards->size());
 	for (; it != fullBoards->end(); it++)
 	{
 		printf("Board:\n");
@@ -391,6 +405,6 @@ int main(int argc, char * argv[])
 		(*it)->Print();
 	}
 
-	printf("elapsed: %f\n", (double) (clock() - start) / CLOCKS_PER_SEC);
+	fprintf(stderr, "elapsed: %f\n", (double) (clock() - start) / CLOCKS_PER_SEC);
 }
 
