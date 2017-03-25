@@ -4,6 +4,7 @@
 #include "string.h"
 #include "stdafx.h"
 #include <string>
+#include <list>
 
 /*----------------------------------------------------------------------------
 	%%Function: AppendBoardsToBoards
@@ -11,12 +12,12 @@
 	%%Contact: rlittle
 	
 ----------------------------------------------------------------------------*/
-void AppendBoardsToBoards(std::vector<Board> *boards, const std::vector<Board> *boardsToAppend)
+void AppendBoardsToBoards(std::list<Board> *boards, const std::list<Board> *boardsToAppend)
 {
 	if (boardsToAppend->size() > 0)
 	{
 		// append the boards we just got back into the list we will return
-		std::vector<Board>::const_iterator it = boardsToAppend->begin();
+		std::list<Board>::const_iterator it = boardsToAppend->begin();
 
 		for (; it != boardsToAppend->end(); it++)
 		{
@@ -276,9 +277,9 @@ bool Board::FSchrodingersChar(const Position &pos) const
 	for every ., create a new board for every character permutation
 	from the given position, find the next '.' and permute/recurse
 ----------------------------------------------------------------------------*/
-std::vector<Board> *Board::PermuteWhitespace(const Position &pos, const std::vector<std::string> &vecIllegal)
+std::list<Board> *Board::PermuteWhitespace(const Position &pos, const std::vector<std::string> &vecIllegal)
 {
-	std::vector<Board> *boards = new std::vector<Board>();
+	std::list<Board> *boards = new std::list<Board>();
 	Position posCur = pos;
 
 	// find the next '.'

@@ -1,16 +1,10 @@
-4 solution(s)
+3 solution(s)
 Board:
   ncedart
   iuchaos
   buffalo
   odacova
   rmagnet
-Board:
-  rmagnet
-  odacova
-  buffalo
-  iuchaos
-  ncedart
 Board:
   tengamr
   avocado
@@ -23,4 +17,4 @@ Board:
   olaffub
   avocado
   tengamr
-elapsed: 2.289000
+elapsed: 2.199000

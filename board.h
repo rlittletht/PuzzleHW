@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <list>
 
 struct Position
 {
@@ -77,10 +78,10 @@ public:
 	bool HasWord(const std::string &word) const;
 	bool HasWords(const std::vector<std::string> &words) const;
 
-	std::vector<Board> *PermuteWhitespace(const Position &pos, const std::vector<std::string> &vecIllegal);
+	std::list<Board> *PermuteWhitespace(const Position &pos, const std::vector<std::string> &vecIllegal);
 
 	void Print(void) const;
 
 };
 
-void AppendBoardsToBoards(std::vector<Board> *boards, const std::vector<Board> *boardsToAppend);
+void AppendBoardsToBoards(std::list<Board> *boards, const std::list<Board> *boardsToAppend);
